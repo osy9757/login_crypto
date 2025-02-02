@@ -1,0 +1,94 @@
+/* client_style.css */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: Arial, sans-serif;
+}
+
+/* 전체 감싸는 컨테이너 */
+.container {
+  max-width: 90%;          /* 좌우 여백을 어느 정도 줄 것인지(5%씩 남길 경우) */
+  margin: 30px auto;       /* 페이지 가운데로 오도록 설정 */
+  padding: 10px;
+  text-align: center;      /* 버튼 등 요소를 가운데 정렬 */
+}
+
+h1 {
+  margin-bottom: 20px;
+}
+
+.button-section {
+  margin-bottom: 15px;
+  /* 추가로 여기에서 text-align: center;를 다시 명시해도 됨 */
+}
+
+/* 파일 첨부 커스텀 버튼 */
+.custom-file-upload {
+  display: inline-block;
+  cursor: pointer;
+  background-color: #007bff;
+  color: #fff;
+  padding: 8px 15px;
+  margin-right: 10px;
+  border-radius: 5px;
+}
+
+.custom-file-upload input[type="file"] {
+  display: none;
+}
+
+/* "불러오기" 버튼 */
+/*#loadOriginalBtn, #loadDecryptedBtn, #exportBtn, #tempSaveBtn {
+  display: inline-block;
+  cursor: pointer;
+  background-color: #007bff;
+  color: #fff;
+  padding: 8px 15px;
+  margin-right: 10px;
+  border-radius: 5px;
+}*/
+
+/* 비활성화된 버튼 */
+button[disabled] {
+  background-color: #ccc;
+  color: #666;
+  border: none;
+  padding: 8px 15px;
+  margin-right: 10px;
+  border-radius: 5px;
+  cursor: not-allowed;
+}
+
+/* 저장하기 버튼 */
+/*#saveBtn {
+  background-color: #28a745;
+  color: #fff;
+  border: none;
+  padding: 8px 15px;
+  margin-right: 10px;
+  border-radius: 5px;
+  cursor: pointer;
+}*/
+
+/* DataTable 래퍼: 좌우 마진 5% + 가로 스크롤 */
+#excelTable_wrapper {
+  margin: 0 5%;
+  margin-top: 20px;
+  overflow-x: auto;  /* 테이블 내용이 넘치면 가로 스크롤 */
+}
+
+/* 수정 가능한 셀(contenteditable) 배경 */
+#excelTable td[contenteditable="true"] {
+  background-color: #fafaff;
+  outline: none;
+}
+#excelTable td[contenteditable="true"]:focus {
+  background-color: #fff1ce;
+}
+
+/* 데이터테이블의 페이지네이션 가운데 정렬 */
+.dataTables_wrapper .dataTables_paginate {
+  display: flex;
+  justify-content: center; /* 중앙 정렬 */
+  margin-top: 10px;
+}

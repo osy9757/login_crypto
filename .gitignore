@@ -1,0 +1,101 @@
+# Created by https://www.toptal.com/developers/gitignore/api/macos,linux,dotenv
+# Edit at https://www.toptal.com/developers/gitignore?templates=macos,linux,dotenv
+
+### dotenv ###
+.env
+
+### Linux ###
+*~
+
+# temporary files which can be created if a process still has a handle open of a deleted file
+.fuse_hidden*
+
+# KDE directory preferences
+.directory
+
+# Linux trash folder which might appear on any partition or disk
+.Trash-*
+
+# .nfs files are created when an open file is removed but is still being accessed
+.nfs*
+
+### macOS ###
+# General
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Icon must end with two \r
+Icon
+
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+### macOS Patch ###
+# iCloud generated files
+*.icloud
+
+
+# ------------------------------
+# PHP 관련
+# ------------------------------
+
+# Composer vendor 디렉토리 (의존성 파일들 – 재설치 가능)
+php/src/vendor/
+php/src/frontend/
+php/src/uploaded_files
+
+check/
+
+# PHP 로그 파일들
+*.log
+php/src/debug.log
+php/src/encryptSave_encrypted.log
+php/src/encryptSave_encryptedRows.log
+php/src/php_errors.log
+
+# 사용자 업로드 파일 등 (동적으로 생성되는 파일)
+php/src/uploaded_files/
+
+# 컴파일된 공유 라이브러리 (빌드 산출물)
+**/*.so
+
+# ------------------------------
+# hcrypt 관련
+# ------------------------------
+
+# OpenSSL 소스/빌드 산출물 – 이미 외부에서 받아서 사용하거나 빌드 산출물이라면
+hcrypt/openssl-1.1.1k.tar.gz
+# 만약 openssl-1.1.1k 디렉토리가 외부 의존성으로 관리되고 빌드 산출물이 아니라면
+# 이 부분은 필요에 따라 주석 처리
+hcrypt/openssl-1.1.1k/
+
+# ------------------------------
+# 데이터베이스 관련
+# ------------------------------
+
+# Postgres 데이터 디렉토리 (컨테이너 내부 데이터 – 매번 생성됨)
+postgres/data/
+
+# ------------------------------
+# 임시 파일 및 캐시
+# ------------------------------
+
+*.tmp

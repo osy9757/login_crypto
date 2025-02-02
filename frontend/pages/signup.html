@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en" class="full-height bg-white">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>회원가입페이지</title>
+    <link rel="stylesheet" href="/frontend/styles/signup.css">
+</head>
+<body class="full-height">
+    <div class="container">
+        <div class="form-container">
+            <div class="logo-section">
+                <h2>회원가입 페이지
+                    <span class="info-icon" tabindex="0">i
+                        <div class="tooltip">
+                            <ul>
+                                <li><strong>입력 검증 (Input Validation)</strong>
+                                    <ul>
+                                        <li>서버 측 검증: 아이디, 비밀번호 같은 입력값은 서버에서 제대로 검사해서 말도 안 되는 값 들어오는 거 막기</li>
+                                        <li>특수문자 처리 및 SQL 인젝션 방어: DB 쿼리 보낼 때는 Prepared Statement나 ORM 사용하고, 특수문자 잘 처리해서 SQL 인젝션 안 당하기</li>
+                                        <li>XSS 방어: HTML 태그나 스크립트 꼼수로 삽입 못 하게 필터링하고, 화면에 뿌릴 땐 HTML 이스케이프 처리하기</li>
+                                    </ul>
+                                </li>
+
+                                <li><strong>비밀번호 보안 강화</strong>
+                                    <ul>
+                                        <li>비밀번호 정책: 대문자, 소문자, 숫자, 특수문자 등 적당히 섞어서 최소 길이 정하고, 너무 쉬운 비번 못 쓰게 하기</li>
+                                        <li>해시 & 솔트: 비밀번호는 bcrypt나 Argon2 같은 강력한 해시로 저장하고, 솔트 추가해서 평문이나 단순 해시로 저장하는 실수는 절대 하지 않기</li>
+                                        <li>비밀번호 재사용 및 변경: "Have I Been Pwned" 같은 유출 DB 확인하거나, 주기적으로 변경 유도해서 유출된 비번 계속 쓰지 못하게</li>
+                                    </ul>
+                                </li>
+
+                                <li><strong>CSRF 방어</strong>
+                                    <ul>
+                                        <li>CSRF 토큰 사용: 폼에 CSRF 토큰 심어서 진짜 우리 사이트에서 보낸 요청인지 확인하기</li>
+                                        <li>SameSite 쿠키 설정: 세션 쿠키에 SameSite 옵션 주면 다른 사이트에서 맘대로 요청 못 보내게 막을 수 있음</li>
+                                    </ul>
+                                </li>
+
+                                <li><strong>HTTPS 사용</strong>
+                                    <ul>
+                                        <li>암호화 전송: TLS/SSL로 웹 트래픽 암호화해서 비밀번호 같은 중요한 정보가 전송 중에 털리지 않게</li>
+                                    </ul>
+                                </li>
+
+                                <li><strong>Rate Limiting 및 Bot 방어</strong>
+                                    <ul>
+                                        <li>요청 횟수 제한: 짧은 시간에 너무 많은 가입 시도 있으면 잠깐 막아서 서버 자원 낭비 방지</li>
+                                        <li>reCAPTCHA/hCaptcha: 사람 아닌 봇이 막 계정 생성 못 하게 캡차로 걸러내기</li>
+                                    </ul>
+                                </li>
+
+                                <li><strong>에러 메시지 최소화</strong>
+                                    <ul>
+                                        <li>정보 노출 줄이기: "이 이메일 이미 있음" 같은 구체적 에러 안 주고, 애매하게 돌려말해서 공격자가 계정 유무 추측 못 하게</li>
+                                    </ul>
+                                </li>
+
+                                <li><strong>이메일 검증 및 2차 인증</strong>
+                                    <ul>
+                                        <li>이메일 인증: 가입한 이메일로 인증 메일 보내서 실제로 쓸 수 있는 메일인지 확인하기</li>
+                                        <li>2차 인증(2FA): 구글 OTP나 SMS 인증 등 한 번 더 확인하는 단계 둬서 계정 보안 강화하기</li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </div>
+                    </span>
+                </h2>
+            </div>
+
+            <div class="form-section">
+                <form action="/signup_process.php" method="POST" class="form" id="signupForm">
+                    <div class="form-group">
+                        <label for="email">ID</label>
+                        <input type="email" name="email" id="email" autocomplete="email" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <input type="password" name="password" id="password" autocomplete="new-password" required>
+                        <!-- 비밀번호 강도 표시 영역 -->
+                        <div id="passwordStrength">
+                            <div class="strength-bar"><div class="strength-fill"></div></div>
+                            <div class="strength-text"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="confirmPassword">Password 확인</label>
+                        <input type="password" name="confirmPassword" id="confirmPassword" autocomplete="new-password" required>
+                        <div id="passwordMatchmessage"></div>
+                    </div>
+
+                    <!-- Captcha 영역 -->
+                    <div class="form-group captcha-group">
+                        <div id="captchaQuestion"></div>
+                        <input type="text" id="captchaAnswer" placeholder="여기에 답을 입력하세요" required>
+                        <div id="captchaMessage"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <button type="submit" class="btn">회원가입</button>
+                    </div>
+                </form>
+
+                <div class="divider">
+                    <span>Or go to</span>
+                </div>
+
+                <div class="link-section">
+                    <a href="/frontend/pages/index.html" class="link">로그인 페이지로 이동</a>
+                </div>
+            </div>
+        </div>
+        <div class="image-section">
+            <img src="https://images.unsplash.com/photo-1496917756835-20cb06e75b4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=1908&q=80" alt="Background Image">
+        </div>
+    </div>
+    <script src="/frontend/scripts/signup.js"></script>
+</body>
+</html>

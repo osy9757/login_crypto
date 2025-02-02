@@ -1,0 +1,148 @@
+<!--*******************************************************
+ * client_table.html
+ *  - 엑셀 파일 첨부 후 DataTables로 화면에 표시
+ *  - 각 셀은 수정 가능
+ *  - 불러오기(원본), 불러오기(복호화), 저장하기, 내보내기
+ *  - "수정하기" (partialUpdate) 기능 추가
+ *******************************************************-->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>Client Table with Web Worker & Editable</title>
+  
+    <!-- XLSX 라이브러리 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <!-- jQuery -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <!-- DataTables 기본 CSS -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css" />
+  <!-- FixedHeader CSS -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/fixedheader/3.3.2/css/fixedHeader.dataTables.min.css" />
+
+  <!-- Popper.js(필요), Bootstrap CSS/JS -->
+  <link
+    rel="stylesheet"
+    href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+  />
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+  <!-- DataTables JS -->
+  <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+  
+  <!-- 커스텀 CSS -->
+  <link rel="stylesheet" href="../styles/client_style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>엑셀 업로드</h1>
+    
+    <!-- 버튼 섹션 -->
+    <div class="button-section">
+      <!-- 파일 첨부 버튼 -->
+      <label class="custom-file-upload">
+        <input
+          type="file"
+          id="excelFileInput"
+          accept=".xlsx, .xls"
+          onchange="handleFileSelect(event)"
+        />
+        파일 첨부
+      </label>
+      
+      <!-- 불러오기(원본) / 복호화 버튼 -->
+      <button id="loadOriginalBtn" class="btn btn-primary">불러오기</button>
+      <button id="loadDecryptedBtn" class="btn btn-primary">불러오기(복호화)</button>
+      <button id="tempSaveBtn" class="btn btn-primary">임시저장</button>
+      <button id="exportBtn" class="btn btn-primary">내보내기</button>
+      <!-- 저장 or 수정하기 버튼 -->
+      <button id="saveBtn" class="btn btn-success">저장하기</button>
+      <!-- 삭제하기 버튼 -->
+      <button id="deleteBtn" class="btn btn-danger">삭제하기</button>
+    </div>
+    
+    <!-- 수정 가능한 DataTable을 표현할 테이블 -->
+    <table id="excelTable" class="display" style="width:100%">
+      <thead>
+        <!-- 숫자로 된 헤더가 동적으로 생성됨 -->
+      </thead>
+      <tbody>
+        <!-- 모든 데이터는 td로 들어감 -->
+      </tbody>
+    </table>
+  </div>
+  
+  <!-- (추가) 모달 코드 (Bootstrap 예시) -->
+  <div class="modal fade" id="saveOptionModal" tabindex="-1" role="dialog" aria-labelledby="saveOptionModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">저장 방식 선택</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          어떻게 저장하시겠습니까?
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" id="plainSaveBtn">평문 저장</button>
+          <button type="button" class="btn btn-secondary" id="encryptSaveBtn">암호화 후 저장</button>
+  
+          <!-- (추가) 내보내기용: 초기에 숨김 (style="display:none;") -->
+          <button type="button" class="btn btn-info" id="exportExcelBtn" style="display:none;">엑셀로 내보내기</button>
+          <button type="button" class="btn btn-primary" id="plainExportBtn" style="display:none;">복호화</button>
+          <button type="button" class="btn btn-secondary" id="encryptExportBtn" style="display:none;">암호문</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- "삭제하기" 옵션을 위한 모달 -->
+  <div class="modal fade" id="deleteOptionModal" tabindex="-1" role="dialog" aria-labelledby="deleteOptionModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="deleteOptionModalLabel">삭제 옵션 선택</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          무엇을 삭제하시겠습니까?
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" id="undoBtn">되돌리기</button>
+          <button type="button" class="btn btn-warning" id="initializeBtn">초기화</button>
+          <button type="button" class="btn btn-danger" id="deleteFromDbBtn">DB 삭제</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 로딩 스피너 (Bootstrap) -->
+  <div id="loadingSpinner" 
+      style="display:none; 
+              position: fixed; 
+              top: 50%; 
+              left: 50%; 
+              transform: translate(-50%, -50%); 
+              z-index: 9999;">
+    <div class="spinner-border text-primary" role="status">
+      <span class="sr-only">Loading...</span>
+    </div>
+    <div style="text-align:center; color: #333; font-weight: bold;">
+      로딩 중...
+    </div>
+  </div>
+
+  <!-- 커스텀 JS -->
+  <!-- upload_excel.js: 엑셀 업로드 + Web Worker 파싱 로직 (생략) -->
+  <script src="../scripts/upload_excel.js"></script>
+
+  <!-- table_handler.js: 테이블 렌더링 및 저장 로직 -->
+  <script src="../scripts/table_handler.js"></script>
+</body>
+</html>
