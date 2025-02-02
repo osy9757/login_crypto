@@ -114,9 +114,8 @@ project_root/
 └── postgres
     └── data  ...
 
+```
 
-+++markdown  
-# 프로젝트 개요  
 
 ## 📂 프로젝트 디렉토리 구조  
 
