@@ -3,7 +3,7 @@
     "description": "My PHP project with PhpSpreadsheet",
     "type": "project",
     "require": {
-      "php": "^8.1",
+      "php": "^7.4",
       "phpoffice/phpspreadsheet": "^1.26",
         "box/spout": "^3.3",
         "vlucas/phpdotenv": "^5.6"

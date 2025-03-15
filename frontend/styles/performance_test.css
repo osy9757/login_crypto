@@ -1,0 +1,338 @@
+/* 기본 스타일 */
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.6;
+  color: #333;
+  margin: 0;
+  padding: 0;
+  background-color: #f9f9f9 !important;
+}
+
+/* 컨테이너 - 세로 레이아웃 적용 */
+.container {
+  display: flex;
+  flex-direction: column;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+h1 {
+  text-align: center;
+  color: #2c3e50;
+  margin-bottom: 30px;
+}
+
+h2 {
+  color: #3498db;
+  margin-top: 0;
+}
+
+/* 섹션 공통 스타일 */
+.section {
+  margin-bottom: 20px;
+  padding: 15px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background-color: #fff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+/* 데이터베이스 연결 섹션 */
+.db-check-section {
+  display: flex;
+  align-items: center;
+}
+
+.status-indicator {
+  margin-left: 15px;
+  padding: 5px 10px;
+  font-size: 14px;
+  border-radius: 4px;
+}
+
+.status-success {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-error {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+/* 파일 업로드 섹션 */
+.custom-file-upload {
+  margin-bottom: 10px;
+  margin-top: 10px;
+}
+
+.custom-file-upload label {
+  display: inline-block;
+  padding: 8px 16px;
+  background-color: #3498db;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.custom-file-upload label:hover {
+  background-color: #2980b9;
+}
+
+.custom-file-upload input[type="file"] {
+  display: none;
+}
+
+.file-info {
+  margin-top: 10px;
+  color: #666;
+  font-size: 14px;
+}
+
+/* 버튼 섹션 - 가로 배열 */
+.button-section {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  background-color: #3498db;
+  color: white;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+button:hover {
+  background-color: #2980b9;
+}
+
+button:disabled {
+  background-color: #bdc3c7;
+  cursor: not-allowed;
+}
+
+#checkDbBtn {
+  background-color: #2ecc71;
+}
+
+#checkDbBtn:hover {
+  background-color: #27ae60;
+}
+
+/* 결과 섹션 */
+.results-section {
+  background-color: #fff;
+}
+
+/* 로딩 인디케이터 */
+#loadingContainer {
+  position: relative;
+  height: 100px;
+  margin: 20px 0;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+/* Balls Loader 커스텀 스타일 */
+#loadingContainer .loader div {
+  background: #3498db;
+}
+
+.text-overlay {
+  position: absolute;
+  bottom: 5px;
+  width: 100%;
+  text-align: center;
+  color: #666;
+  font-size: 14px;
+}
+
+/* 결과 테이블 */
+#resultsTable {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+}
+
+#resultsTable th, 
+#resultsTable td {
+  padding: 12px;
+  border: 1px solid #e0e0e0;
+  text-align: center;
+}
+
+#resultsTable th {
+  background-color: #f2f2f2;
+  font-weight: 600;
+}
+
+#resultsTable tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+/* 상태 표시 스타일 */
+.status-waiting {
+  color: #7f8c8d;
+}
+
+.status-running {
+  color: #f39c12;
+  font-weight: bold;
+}
+
+.status-success {
+  color: #2ecc71;
+  font-weight: bold;
+}
+
+.status-error {
+  color: #e74c3c;
+  font-weight: bold;
+}
+
+/* 모달 로더 스타일 */
+.modal-loader {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-loader-content {
+  background-color: #fff;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  width: 300px;
+}
+
+#loaderContainer {
+  height: 100px;
+  position: relative;
+  margin-bottom: 20px;
+}
+
+/* Balls Loader 스타일 재정의 */
+#loaderContainer .loader {
+  position: relative;
+  top: 10px;
+  left: 0;
+  transform: none;
+  margin: 0 auto;
+}
+
+.loader-text {
+  color: #666;
+  font-size: 14px;
+  margin-top: 15px;
+}
+
+/* 파싱된 데이터 섹션 스타일 */
+.parsed-data-section {
+  margin-top: 30px;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.parsed-stats {
+  margin-bottom: 15px;
+}
+
+.parsed-stats p {
+  margin: 5px 0;
+}
+
+.parsed-table-container {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+}
+
+.data-preview-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-preview-table th, 
+.data-preview-table td {
+  padding: 8px;
+  text-align: left;
+  border: 1px solid #e0e0e0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.data-preview-table th {
+  background-color: #f2f2f2;
+  position: sticky;
+  top: 0;
+}
+
+.data-preview-table tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+/* 파싱 버튼 스타일 */
+#parseExcelBtn {
+  background-color: #9b59b6;
+}
+
+#parseExcelBtn:hover {
+  background-color: #8e44ad;
+}
+
+/* 테이블 초기화 섹션 스타일 */
+.table-reset-section {
+  margin-top: 30px;
+  padding: 20px;
+  background-color: #f8f8f8;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.reset-warning {
+  padding: 10px 15px;
+  background-color: #fff3cd;
+  border-left: 4px solid #ffc107;
+  margin-bottom: 15px;
+}
+
+.action-button.danger {
+  background-color: #dc3545;
+}
+
+.action-button.danger:hover {
+  background-color: #c82333;
+}
+
+.reset-result {
+  margin-top: 15px;
+  padding: 10px;
+}
+
+.result-info.success {
+  padding: 10px;
+  background-color: #d4edda;
+  color: #155724;
+  border-radius: 4px;
+}
