@@ -1,0 +1,51 @@
+<!--
+date_picker.html
+-->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>날짜 선택기</title>
+  <link rel="stylesheet" href="date_picker.css">
+</head>
+<body>
+  <div class="container">
+    <h1>날짜 차이 계산기</h1>
+    
+    <!-- 날짜 선택 입력 필드 -->
+    <div class="date-range-container">
+      <div class="date-picker-wrapper">
+        <input type="text" id="dateRangePicker" class="date-range-input" placeholder="날짜를 선택하세요" readonly>
+        <label for="dateRangePicker" class="calendar-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+        </label>
+      </div>
+    </div>
+
+    <!-- 계산 버튼 -->
+    <div class="button-container">
+      <button id="calculateDateBtn">날짜 계산하기</button>
+      <button id="clearDateBtn">초기화</button>
+    </div>
+
+    <!-- 결과 출력 영역 -->
+    <h2>날짜 차이 결과</h2>
+    <div id="dateResult"></div>
+  </div>
+
+  <!-- 날짜 선택 모달 (Web Component 사용) -->
+  <div id="datePickerModal" class="date-picker-modal">
+    <date-picker-component></date-picker-component>
+  </div>
+
+  <!-- Web Component 및 JavaScript 파일 -->
+  <script src="../date_picker_component/date_picker_component.js"></script>
+  <script src="date_picker.js"></script>
+</body>
+</html> 

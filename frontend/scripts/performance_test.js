@@ -39,6 +39,19 @@ const appState = {
     
     // 복호화 및 다운로드 버튼 이벤트
     $('#decryptDownloadBtn').on('click', runDecryptAndDownload);
+    
+    // DB 파싱 데이터 복원 (페이지 이동 후 돌아왔을 때)
+    const savedDBData = sessionStorage.getItem('dbParsedData');
+    if (savedDBData) {
+      try {
+        const parsedData = JSON.parse(savedDBData);
+        if (parsedData && parsedData.length) {
+          renderDBParsedData(parsedData);
+        }
+      } catch (e) {
+        console.error('DB 파싱 데이터 복원 실패:', e);
+      }
+    }
   });
   
   /**
@@ -59,6 +72,9 @@ const appState = {
         $("<style>")
           .prop("type", "text/css")
           .html(`
+            #loaderContainer {
+              padding-top: 20px; 
+            }
             #loaderContainer .loader div {
               background: #3498db;
             }
@@ -184,150 +200,123 @@ const appState = {
       $(`#time${i}`).text('-');
       $(`#notes${i}`).text('');
     }
+
+    // initializeTables 함수를 Promise로 래핑
+    const initializeTablesPromise = () => {
+      return new Promise((resolve, reject) => {
+        // 대화상자 없이 바로 진행
+        showLoader(true, '테이블 초기화 중...');
+        // API 호출
+        $.ajax({
+          url: '/test_distributed_save.php?action=initialize_tables',
+          type: 'GET',
+          dataType: 'json'
+        })
+        .done(function(response) {
+          showLoader(false);
+          if (response.success) {
+            console.log('테이블 초기화 성공:', response.message);
+            resolve(); // 성공 시 Promise 해결
+          } else {
+            console.error('테이블 초기화 실패:', response.message);
+            reject(new Error('테이블 초기화 실패: ' + response.message)); // 실패 시 Promise 거부
+          }
+        })
+        .fail(function(jqXHR, textStatus, errorThrown) {
+          showLoader(false);
+          console.error('API 요청 실패:', textStatus, errorThrown);
+          reject(new Error('테이블 초기화 요청 실패: ' + textStatus)); // 실패 시 Promise 거부
+        });
+      });
+    };
     
-    // 첫 번째 테스트 시작 (단일 테이블 저장)
-    runSingleTableSaveTest(data);
+    // 테스트 시작 전 첫 번째 초기화
+    initializeTablesPromise()
+      .then(() => {
+        // 테스트 1 실행
+        return runSingleTableSaveTest(data);
+      })
+      .then(() => {
+        // 1초 대기 후 테스트 2 실행
+        console.log('테스트 1 완료, 1초 후 테스트 2 시작');
+        return new Promise(resolve => setTimeout(() => {
+          resolve(runDistributedTableTest(data));
+        }, 1000));
+      })
+      .then(() => {
+        // 테스트 2 완료 후 다시 테이블 초기화
+        console.log('테스트 2 완료, 테이블 초기화 후 테스트 3 시작');
+        return initializeTablesPromise();
+      })
+      .then(() => {
+        // 테스트 3 실행
+        return runMultithreadDistributedTableTest(data);
+      })
+      .then(() => {
+        // 1초 대기 후 테스트 4 실행
+        console.log('테스트 3 완료, 1초 후 테스트 4 시작');
+        return new Promise(resolve => setTimeout(() => {
+          resolve(runExcelDownloadTest());
+        }, 1000));
+      })
+      .then(() => {
+        // 모든 테스트 완료
+        console.log('모든 테스트 완료');
+        appState.testRunning = false;
+      })
+      .catch(error => {
+        // 오류 발생 시
+        console.error('테스트 실행 중 오류 발생:', error);
+        showLoader(false);
+        alert('테스트 실행 중 오류가 발생했습니다: ' + error.message);
+        appState.testRunning = false;
+      });
   }
   
   /**
-   * 테스트 1: 단일 테이블 저장
+   * 테스트 1: 단일 테이블 저장 (Promise 반환)
    */
   function runSingleTableSaveTest(data) {
-    // 테스트 시작 상태 업데이트
-    $('#status1').text('실행중').attr('class', 'status-running');
-    $('#time1').text('-');
-    $('#notes1').text('');
-    
-    // 로딩 표시
-    showLoader(true, '단일 테이블 암호화 저장 중...');
-    
-    // 시작 시간 기록
-    const startTime = performance.now();
-    
-    // 2차원 배열을 객체 배열로 변환
-    const headers = data[0];
-    const rows = data.slice(1);
-    
-    // 객체 배열로 변환
-    const objectData = rows.map(row => {
-      const obj = {};
-      headers.forEach((header, index) => {
-        // 숫자만으로 된 컬럼명 대신 col+숫자 형식 사용
-        const colName = 'col' + (index + 1); // 반드시 'col1', 'col2' 형태로
-        obj[colName] = row[index];
-      });
-      return obj;
-    });
-    
-    // API 호출 - 단일 테이블 저장 (객체 배열 형식으로 전송)
-    $.ajax({
-      url: '/save_excel_test.php',
-      type: 'POST',
-      data: JSON.stringify({
-        mode: 'singleTable',
-        data: objectData
-      }),
-      contentType: 'application/json',
-      dataType: 'json',
-      timeout: 300000 // 5분 타임아웃
-    })
-    .done(function(response) {
-      const endTime = performance.now();
-      const elapsedTime = ((endTime - startTime) / 1000).toFixed(2);
+    return new Promise((resolve, reject) => {
+      // 테스트 시작 상태 업데이트
+      $('#status1').text('실행중').attr('class', 'status-running');
+      $('#time1').text('-');
+      $('#notes1').text('');
       
-      // 로딩 숨기기
-      showLoader(false);
+      // 로딩 표시
+      showLoader(true, '단일 테이블 암호화 저장 중...');
       
-      if (response.success) {
-        // 성공: 결과 표시
-        $('#status1').text('완료').attr('class', 'status-success');
-        $('#time1').text(`${elapsedTime}초`);
-        $('#notes1').text(`저장된 행: ${response.rowsAffected}, 열: ${response.colCount}`);
-        
-        // 결과 저장
-        appState.results.test1 = { 
-          time: elapsedTime, 
-          status: '완료', 
-          notes: `저장된 행: ${response.rowsAffected}, 열: ${response.colCount}` 
-        };
-        
-        // 1초 딜레이 후 다음 테스트 실행
-        console.log('테스트 1 완료, 1초 후 다음 테스트 시작');
-        setTimeout(function() {
-          // 다음 테스트 자동 실행 (테이블 20개 분산)
-          runDistributedTableTest(data);
-        }, 1000);
-      } else {
-        // 실패: 오류 메시지
-        $('#status1').text('실패').attr('class', 'status-error');
-        $('#time1').text(`${elapsedTime}초`);
-        $('#notes1').text(`오류: ${response.message}`);
-        appState.testRunning = false;
-      }
-    })
-    .fail(function(jqXHR, textStatus, errorThrown) {
-      const endTime = performance.now();
-      const elapsedTime = ((endTime - startTime) / 1000).toFixed(2);
+      // 시작 시간 기록
+      const startTime = performance.now();
       
-      showLoader(false);
+      // 2차원 배열을 객체 배열로 변환
+      const headers = data[0];
+      const rows = data.slice(1);
       
-      $('#status1').text('실패').attr('class', 'status-error');
-      $('#time1').text(`${elapsedTime}초`);
-      $('#notes1').text(`요청 실패: ${textStatus}`);
-      
-      console.error('API 요청 실패:', textStatus, errorThrown);
-      console.error('응답 상태:', jqXHR.status, jqXHR.statusText);
-      console.error('응답 텍스트:', jqXHR.responseText);
-      
-      alert('테스트 실패. 개발자 콘솔에서 상세 정보를 확인하세요.');
-      appState.testRunning = false;
-    });
-  }
-  
-  /**
-   * 테스트 2: 테이블 30개 분산 저장
-   */
-  function runDistributedTableTest(data) {
-    // 테스트 시작 상태 업데이트
-    $('#status2').text('실행중').attr('class', 'status-running');
-    $('#time2').text('-');
-    $('#notes2').text('');
-    
-    // 로딩 표시
-    showLoader(true, '데이터를 30개 테이블에 분산 저장 중...');
-    
-    // 시작 시간 기록
-    const startTime = performance.now();
-    
-    // 2차원 배열을 객체 배열로 변환
-    const headers = data[0];
-    const rows = data.slice(1);
-    
-    // 객체 배열로 변환
-    const objectData = rows.map(row => {
+      // 객체 배열로 변환
+      const objectData = rows.map(row => {
         const obj = {};
         headers.forEach((header, index) => {
-            // 숫자만으로 된 컬럼명 대신 col+숫자 형식 사용
-            const colName = 'col' + (index + 1);
-            obj[colName] = row[index];
+          // 숫자만으로 된 컬럼명 대신 col+숫자 형식 사용
+          const colName = 'col' + (index + 1); // 반드시 'col1', 'col2' 형태로
+          obj[colName] = row[index];
         });
         return obj;
-    });
-    
-    // API 호출 - 분산 테이블 저장
-    $.ajax({
-        url: '/distributed_save.php',
+      });
+      
+      // API 호출 - 단일 테이블 저장 (객체 배열 형식으로 전송)
+      $.ajax({
+        url: '/save_excel_test.php',
         type: 'POST',
         data: JSON.stringify({
-            mode: 'distributed',
-            tableCount: 30,
-            data: objectData
+          mode: 'singleTable',
+          data: objectData
         }),
         contentType: 'application/json',
         dataType: 'json',
         timeout: 300000 // 5분 타임아웃
-    })
-    .done(function(response) {
+      })
+      .done(function(response) {
         const endTime = performance.now();
         const elapsedTime = ((endTime - startTime) / 1000).toFixed(2);
         
@@ -335,210 +324,506 @@ const appState = {
         showLoader(false);
         
         if (response.success) {
-            // 성공: 결과 표시
-            $('#status2').text('완료').attr('class', 'status-success');
-            $('#time2').text(`${elapsedTime}초`);
-            $('#notes2').text(`저장된 행: ${response.rowsAffected}, 테이블 수: ${response.tableCount}`);
-            
-            // 결과 저장
-            appState.results.test2 = { 
-                time: elapsedTime, 
-                status: '완료', 
-                notes: `저장된 행: ${response.rowsAffected}, 테이블 수: ${response.tableCount}` 
-            };
-            
-            // 1초 딜레이 후 다음 테스트 실행
-            console.log('테스트 2 완료, 1초 후 다음 테스트 시작');
-            setTimeout(function() {
-                // 다음 테스트 진행 또는 종료
-                if (typeof runMultithreadDistributedTableTest === 'function') {
-                    // 테스트 4가 구현되어 있다면 실행
-                    runMultithreadDistributedTableTest(data);
-                } else {
-                    // 마지막 테스트라면 상태만 업데이트
-                    appState.testRunning = false;
-                    console.log('모든 테스트 완료');
-                }
-            }, 1000);
+          // 성공: 결과 표시
+          $('#status1').text('완료').attr('class', 'status-success');
+          $('#time1').text(`${elapsedTime}초`);
+          $('#notes1').text(`저장된 행: ${response.rowsAffected}, 열: ${response.colCount}`);
+          
+          // 결과 저장
+          appState.results.test1 = { 
+            time: elapsedTime, 
+            status: '완료', 
+            notes: `저장된 행: ${response.rowsAffected}, 열: ${response.colCount}` 
+          };
+          
+          // Promise 성공 완료
+          resolve();
         } else {
-            // 실패: 오류 메시지
-            $('#status2').text('실패').attr('class', 'status-error');
-            $('#time2').text(`${elapsedTime}초`);
-            $('#notes2').text(`오류: ${response.message}`);
-            appState.testRunning = false;
+          // 실패: 오류 메시지
+          $('#status1').text('실패').attr('class', 'status-error');
+          $('#time1').text(`${elapsedTime}초`);
+          $('#notes1').text(`오류: ${response.message}`);
+          
+          // Promise 실패
+          reject(new Error(response.message || '테스트 1 실패'));
         }
-    })
-    .fail(function(jqXHR, textStatus, errorThrown) {
+      })
+      .fail(function(jqXHR, textStatus, errorThrown) {
         const endTime = performance.now();
         const elapsedTime = ((endTime - startTime) / 1000).toFixed(2);
         
         showLoader(false);
         
-        $('#status2').text('실패').attr('class', 'status-error');
-        $('#time2').text(`${elapsedTime}초`);
-        $('#notes2').text(`요청 실패: ${textStatus}`);
+        $('#status1').text('실패').attr('class', 'status-error');
+        $('#time1').text(`${elapsedTime}초`);
+        $('#notes1').text(`요청 실패: ${textStatus}`);
         
         console.error('API 요청 실패:', textStatus, errorThrown);
         console.error('응답 상태:', jqXHR.status, jqXHR.statusText);
         console.error('응답 텍스트:', jqXHR.responseText);
         
-        alert('테스트 실패. 개발자 콘솔에서 상세 정보를 확인하세요.');
-        appState.testRunning = false;
+        // Promise 실패
+        reject(new Error(`요청 실패: ${textStatus} (${errorThrown})`));
+      });
     });
   }
   
   /**
-   * 테스트 3: 멀티프로세스 분산 테이블 테스트 (암호화 추가)
+   * 테스트 2: 테이블 30개 분산 저장 (Promise 반환)
+   */
+  function runDistributedTableTest(data) {
+    return new Promise((resolve, reject) => {
+      // 테스트 시작 상태 업데이트
+      $('#status2').text('실행중').attr('class', 'status-running');
+      $('#time2').text('-');
+      $('#notes2').text('');
+      
+      // 로딩 표시
+      showLoader(true, '데이터를 30개 테이블에 분산 저장 중...');
+      
+      // 시작 시간 기록
+      const startTime = performance.now();
+      
+      // 2차원 배열을 객체 배열로 변환
+      const headers = data[0];
+      const rows = data.slice(1);
+      
+      // 객체 배열로 변환
+      const objectData = rows.map(row => {
+          const obj = {};
+          headers.forEach((header, index) => {
+              // 숫자만으로 된 컬럼명 대신 col+숫자 형식 사용
+              const colName = 'col' + (index + 1);
+              obj[colName] = row[index];
+          });
+          return obj;
+      });
+      
+      // API 호출 - 분산 테이블 저장
+      $.ajax({
+          url: '/distributed_save.php',
+          type: 'POST',
+          data: JSON.stringify({
+              mode: 'distributed',
+              tableCount: 30,
+              data: objectData
+          }),
+          contentType: 'application/json',
+          dataType: 'json',
+          timeout: 300000 // 5분 타임아웃
+      })
+      .done(function(response) {
+          const endTime = performance.now();
+          const elapsedTime = ((endTime - startTime) / 1000).toFixed(2);
+          
+          // 로딩 숨기기
+          showLoader(false);
+          
+          if (response.success) {
+              // 성공: 결과 표시
+              $('#status2').text('완료').attr('class', 'status-success');
+              $('#time2').text(`${elapsedTime}초`);
+              $('#notes2').text(`저장된 행: ${response.rowsAffected}, 테이블 수: ${response.tableCount}`);
+              
+              // 결과 저장
+              appState.results.test2 = { 
+                  time: elapsedTime, 
+                  status: '완료', 
+                  notes: `저장된 행: ${response.rowsAffected}, 테이블 수: ${response.tableCount}` 
+              };
+              
+              // Promise 성공 완료
+              resolve();
+          } else {
+              // 실패: 오류 메시지
+              $('#status2').text('실패').attr('class', 'status-error');
+              $('#time2').text(`${elapsedTime}초`);
+              $('#notes2').text(`오류: ${response.message}`);
+              
+              // Promise 실패
+              reject(new Error(response.message || '테스트 2 실패'));
+          }
+      })
+      .fail(function(jqXHR, textStatus, errorThrown) {
+          const endTime = performance.now();
+          const elapsedTime = ((endTime - startTime) / 1000).toFixed(2);
+          
+          showLoader(false);
+          
+          $('#status2').text('실패').attr('class', 'status-error');
+          $('#time2').text(`${elapsedTime}초`);
+          $('#notes2').text(`요청 실패: ${textStatus}`);
+          
+          console.error('API 요청 실패:', textStatus, errorThrown);
+          console.error('응답 상태:', jqXHR.status, jqXHR.statusText);
+          console.error('응답 텍스트:', jqXHR.responseText);
+          
+          // Promise 실패
+          reject(new Error(`요청 실패: ${textStatus} (${errorThrown})`));
+      });
+    });
+  }
+  
+  /**
+   * 테스트 3: 멀티프로세스 분산 테이블 테스트 (암호화 추가) (Promise 반환)
    */
   function runMultithreadDistributedTableTest(data) {
-    // 테스트 시작 상태 업데이트
-    $('#status3').text('실행중').attr('class', 'status-running');
-    $('#time3').text('-');
-    $('#notes3').text('');
-    
-    // 로딩 표시 - 텍스트 변경
-    showLoader(true, '멀티프로세스 분산 저장 중...');
-    
-    // 시작 시간 기록
-    const startTime = performance.now();
-    
-    // 암호화 옵션 추가
-    const payload = {
-        data: data,
-        processCount: 4,
-        encrypt: true  // 암호화 활성화
-    };
-    
-    // API 요청
-    $.ajax({
-        url: '/multiprocess_distributed_save.php',
-        type: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify(payload),
-        dataType: 'json',
-        timeout: 60000
-    })
-    .done(function(response) {
-        // 로딩 숨기기
-        showLoader(false);
-        
-        // 종료 시간 기록 및 경과 시간 계산
-        const endTime = performance.now();
-        const elapsedTime = ((endTime - startTime) / 1000).toFixed(2);
-        
-        if (response.success) {
-            // 성공 처리
-            const encryptInfo = response.encrypted ? ` (${response.encryptMethod} 암호화)` : '';
-            $('#status3').text('완료').attr('class', 'status-success');
-            $('#time3').text(`${elapsedTime}초`);
-            // "스레드" 대신 "프로세스"로 표현 변경
-            $('#notes3').text(`저장된 행: ${response.rowsAffected}, 테이블 수: ${response.tableCount}${encryptInfo}`);
-            
-            console.log('테스트 3 완료, 1초 후 다음 테스트 시작');
-            
-            // 1초 딜레이 후 다음 테스트 실행
-            setTimeout(function() {
-                // 다음 테스트로 엑셀 다운로드 테스트 실행
-                runExcelDownloadTest();
-            }, 1000);
-        } else {
-            // 실패 처리
-            $('#status3').text('실패').attr('class', 'status-error');
-            $('#time3').text(`${elapsedTime}초`);
-            $('#notes3').text(`오류: ${response.message}`);
-            appState.testRunning = false;
-        }
-    })
-    .fail(function(jqXHR, textStatus, errorThrown) {
-        // 로딩 숨기기
-        showLoader(false);
-        
-        // 종료 시간 및 경과 시간 계산
-        const endTime = performance.now();
-        const elapsedTime = ((endTime - startTime) / 1000).toFixed(2);
-        
-        // 오류 상태 표시
-        $('#status3').text('실패').attr('class', 'status-error');
-        $('#time3').text(`${elapsedTime}초`);
-        $('#notes3').text(`AJAX 오류: ${textStatus}, ${errorThrown}`);
-        
-        console.error('테스트 3 실패:', textStatus, errorThrown);
-        appState.testRunning = false;
+    return new Promise((resolve, reject) => {
+      // 테스트 시작 상태 업데이트
+      $('#status3').text('실행중').attr('class', 'status-running');
+      $('#time3').text('-');
+      $('#notes3').text('');
+      
+      // 로딩 표시 - 텍스트 변경
+      showLoader(true, '멀티프로세스 분산 저장 중...');
+      
+      // 시작 시간 기록
+      const startTime = performance.now();
+      
+      const headers = data[0];
+      const rows = data.slice(1);
+
+      // 암호화 옵션 추가
+      const payload = {
+          data: rows,
+          processCount: 4,
+          encrypt: true  // 암호화 활성화
+      };
+      
+      // API 요청
+      $.ajax({
+          url: '/multiprocess_distributed_save.php',
+          type: 'POST',
+          contentType: 'application/json',
+          data: JSON.stringify(payload),
+          dataType: 'json',
+          timeout: 60000
+      })
+      .done(function(response) {
+          // 로딩 숨기기
+          showLoader(false);
+          
+          // 종료 시간 기록 및 경과 시간 계산
+          const endTime = performance.now();
+          const elapsedTime = ((endTime - startTime) / 1000).toFixed(2);
+          
+          if (response.success) {
+              // 성공 처리
+              const encryptInfo = response.encrypted ? ` (${response.encryptMethod} 암호화)` : '';
+              $('#status3').text('완료').attr('class', 'status-success');
+              $('#time3').text(`${elapsedTime}초`);
+              // "스레드" 대신 "프로세스"로 표현 변경
+              $('#notes3').text(`저장된 행: ${response.rowsAffected}, 테이블 수: ${response.tableCount}${encryptInfo}`);
+              
+              // Promise 완료
+              resolve();
+          } else {
+              // 실패 처리
+              $('#status3').text('실패').attr('class', 'status-error');
+              $('#time3').text(`${elapsedTime}초`);
+              $('#notes3').text(`오류: ${response.message}`);
+              
+              // Promise 실패
+              reject(new Error(response.message || '테스트 3 실패'));
+          }
+      })
+      .fail(function(jqXHR, textStatus, errorThrown) {
+          // 로딩 숨기기
+          showLoader(false);
+          
+          // 종료 시간 및 경과 시간 계산
+          const endTime = performance.now();
+          const elapsedTime = ((endTime - startTime) / 1000).toFixed(2);
+          
+          // 오류 상태 표시
+          $('#status3').text('실패').attr('class', 'status-error');
+          $('#time3').text(`${elapsedTime}초`);
+          $('#notes3').text(`AJAX 오류: ${textStatus}, ${errorThrown}`);
+          
+          console.error('테스트 3 실패:', textStatus, errorThrown);
+          
+          // Promise 실패
+          reject(new Error(`AJAX 오류: ${textStatus}, ${errorThrown}`));
+      });
     });
   }
   
   /**
-   * 테스트 4: 프로시저를 통한 데이터 조회 - 전체 데이터 가져오기로 수정
+   * 테스트 4: 프로시저를 통한 데이터 조회 - 전체 데이터 가져오기 (Promise 반환)
    */
   function runExcelDownloadTest() {
-    console.log('테스트 4 시작: 프로시저를 통한 전체 데이터 조회');
+    return new Promise((resolve, reject) => {
+      console.log('테스트 4 시작: 프로시저를 통한 전체 데이터 조회');
     
-    // 상태 업데이트
-    $('#status4').text('실행 중').attr('class', 'status-running');
+      // 상태 업데이트
+      $('#status4').text('실행 중').attr('class', 'status-running');
+      $('#time4').text('-');
+      $('#notes4').text('');
     
-    // 로딩 표시
-    showLoader(true, '전체 데이터 조회 중...');
+      // 로딩 표시
+      showLoader(true, '전체 데이터 조회 중...');
     
-    // 시작 시간 기록
-    const startTime = performance.now();
+      // 시작 시간 기록
+      const startTime = performance.now();
     
-    // 옵션 - 제한 없이 전체 데이터
-    const options = {};
+      // 옵션 - 더 많은 데이터를 가져오도록 수정
+      const options = {
+        fetchFullData: true,  // 전체 데이터 요청 플래그
+        limit: 100000         // 최대 100000행까지 요청 (필요에 따라 조정)
+      };
     
-    // API 호출
-    $.ajax({
+      // API 호출
+      $.ajax({
         url: '/decrypt_and_download.php',
         type: 'POST',
         contentType: 'application/json',
         data: JSON.stringify(options),
         dataType: 'json',
-        timeout: 600000  // 10분 타임아웃으로 증가
-    })
-    .done(function(response) {
+        timeout: 600000  // 10분 타임아웃
+      })
+      .done(function(response) {
         // 로딩 숨기기
         showLoader(false);
-        
+    
         // 종료 시간 기록
         const endTime = performance.now();
         const elapsedTime = ((endTime - startTime) / 1000).toFixed(2);
-        
+    
         if (response.success) {
-            // 성공: 결과 표시
-            $('#status4').text('완료').attr('class', 'status-success');
-            $('#time4').text(`${elapsedTime}초`);
-            $('#notes4').text(`전체 ${response.rowCount}행 조회 완료 (서버 처리: ${response.elapsedTime}초)`);
-            
-            // 샘플 데이터 콘솔에 출력 (추가)
-            if (response.sampleData && response.sampleData.length > 0) {
-                console.log('===== 복호화된 데이터 샘플 (처음 10개 행) =====');
-                console.table(response.sampleData);
-                console.log('=================================================');
-            }
+          // 성공: 결과 표시
+          $('#status4').text('완료').attr('class', 'status-success');
+          $('#time4').text(`${elapsedTime}초`);
+          
+          // 1. 비고에 총 행수와 시간 표시
+          $('#notes4').text(`총 ${response.rowCount}행, ${elapsedTime}초`);
+          
+          // 2. DB 파싱 결과 영역 표시 및 데이터 렌더링 
+          // sampleData 대신 전체 데이터 또는 많은 데이터 사용
+          const displayData = response.resultData || response.sampleData || [];
+          console.log(`표시할 데이터 개수: ${displayData.length}행`);
+          renderDBParsedData(displayData);
+          
+          // 3. 결과 데이터를 세션 스토리지에 저장 (페이지 이동 후에도 유지)
+          sessionStorage.setItem('dbParsedData', JSON.stringify(displayData));
+          
+          // Promise 완료
+          resolve();
         } else {
-            // 실패: 오류 메시지
-            $('#status4').text('실패').attr('class', 'status-error');
-            $('#time4').text(`${elapsedTime}초`);
-            $('#notes4').text(`오류: ${response.message || '알 수 없는 오류'}`);
+          // 실패: 오류 메시지
+          $('#status4').text('실패').attr('class', 'status-error');
+          $('#time4').text(`${elapsedTime}초`);
+          $('#notes4').text(`오류: ${response.message || '알 수 없는 오류'}`);
+          
+          reject(new Error(response.message || '테스트 4 실패'));
         }
-        
-        // 테스트 상태 업데이트
-        appState.testRunning = false;
-    })
-    .fail(function(jqXHR, textStatus, errorThrown) {
+      })
+      .fail(function(jqXHR, textStatus, errorThrown) {
         // 로딩 숨기기
         showLoader(false);
-        
+    
+        const endTime = performance.now();
+        const elapsedTime = ((endTime - startTime) / 1000).toFixed(2);
+    
         // 오류 표시
         $('#status4').text('실패').attr('class', 'status-error');
-        $('#time4').text('N/A');
+        $('#time4').text(`${elapsedTime}초`);
         $('#notes4').text(`요청 실패: ${textStatus}`);
-        
+    
         console.error('API 요청 실패:', textStatus, errorThrown);
         console.error('응답 상태:', jqXHR.status, jqXHR.statusText);
         console.error('응답 텍스트:', jqXHR.responseText);
+    
+        // Promise 실패
+        reject(new Error(`요청 실패: ${textStatus} (${errorThrown})`));
+      });
+    });
+  }
+  
+  /**
+   * DB 파싱 결과 데이터 렌더링
+   * @param {Array} data DB에서 가져온 데이터 배열
+   */
+  function renderDBParsedData(data) {
+    if (!data || !data.length) {
+      console.warn('DB 파싱 결과 없음');
+      $('#dbParsedDataSection').hide();
+      return;
+    }
+    
+    console.log(`데이터 렌더링 시작: ${data.length}행`);
+    
+    // DB 파싱 결과 섹션 표시
+    $('#dbParsedDataSection').show();
+    
+    // 행 및 열 수 표시
+    $('#dbRowCount').text(data.length);
+    $('#dbColCount').text(Object.keys(data[0]).length);
+    
+    // 기존 테이블 삭제 (초기화)
+    if ($.fn.DataTable.isDataTable('#dbParsedDataTable')) {
+      $('#dbParsedDataTable').DataTable().destroy();
+    }
+    
+    // 테이블 헤더 및 바디 초기화
+    $('#dbParsedDataTable thead').empty();
+    $('#dbParsedDataTable tbody').empty();
+    
+    // 헤더 생성
+    const headers = Object.keys(data[0]);
+    let headerHtml = '<tr>';
+    headers.forEach(header => {
+      headerHtml += `<th>${header}</th>`;
+    });
+    headerHtml += '</tr>';
+    $('#dbParsedDataTable thead').append(headerHtml);
+    
+    // DataTable 초기화 (대용량 데이터에 최적화)
+    const dbDataTable = $('#dbParsedDataTable').DataTable({
+      data: data,
+      columns: headers.map(header => ({ 
+        data: header,
+        title: header,
+        // 셀 렌더링을 편집 가능한 입력 필드로
+        render: function(data, type, row, meta) {
+          if (type === 'display') {
+            return '<input type="text" class="cell-editor" value="' + (data || '') + '">';
+          }
+          return data;
+        }
+      })),
+      // 표시 개선 설정
+      pageLength: 25,  // 한 페이지에 25행 표시
+      lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "전체"]], // 페이지 크기 옵션
+      scrollX: true,   // 가로 스크롤
+      scrollY: '500px', // 세로 스크롤 (높이 제한)
+      scrollCollapse: true,
+      processing: true, // 처리 중 표시
+      deferRender: true, // 렌더링 지연 (성능 향상)
+      scroller: true,   // 가상 스크롤링 활성화
+      dom: 'lfrtip',    // 기본 DataTable UI 요소
+      select: true,
+      language: {       // 한국어 설정
+        processing: "처리 중...",
+        search: "검색:",
+        lengthMenu: "_MENU_ 개씩 보기",
+        info: "_START_ - _END_ / _TOTAL_",
+        infoEmpty: "데이터 없음",
+        infoFiltered: "(_MAX_ 개 중 필터링됨)",
+        paginate: {
+          first: "처음",
+          last: "마지막",
+          next: "다음",
+          previous: "이전"
+        }
+      }
+    });
+    
+    // 셀 데이터 변경 이벤트 처리 (수정 감지)
+    $('#dbParsedDataTable').on('change', '.cell-editor', function() {
+      const cell = dbDataTable.cell($(this).closest('td'));
+      const rowIdx = cell.index().row;
+      const colIdx = cell.index().column;
+      const headerName = headers[colIdx];
+      
+      // 원본 데이터 업데이트
+      const rowData = dbDataTable.row(rowIdx).data();
+      rowData[headerName] = $(this).val();
+      
+      // 세션 스토리지 업데이트 (페이지 이동 후 복원을 위해)
+      // 성능 문제로 인해 타이머 사용하여 디바운스 처리
+      if (window.dbUpdateTimer) {
+        clearTimeout(window.dbUpdateTimer);
+      }
+      window.dbUpdateTimer = setTimeout(function() {
+        const allData = dbDataTable.data().toArray();
+        sessionStorage.setItem('dbParsedData', JSON.stringify(allData));
+        console.log('세션 스토리지 데이터 업데이트 완료');
+      }, 2000); // 2초 후에 저장
+      
+      console.log(`데이터 수정: [${rowIdx}][${headerName}] = ${$(this).val()}`);
+    });
+    
+    // 다운로드 버튼 이벤트 바인딩
+    $('#dbDownloadBtn').off('click').on('click', function() {
+      downloadModifiedExcel();
+    });
+    
+    console.log('DataTable 렌더링 완료');
+  }
+  
+  /**
+   * 수정된 데이터를 엑셀 파일로 다운로드
+   */
+  function downloadModifiedExcel() {
+    // 로딩 표시
+    showLoader(true, '수정된 데이터로 엑셀 파일 생성 중...');
+    
+    // DataTable에서 현재 데이터 가져오기
+    let modifiedData = [];
+    
+    if ($.fn.DataTable.isDataTable('#dbParsedDataTable')) {
+      const table = $('#dbParsedDataTable').DataTable();
+      
+      // 데이터 가져오기
+      table.rows().every(function() {
+        const rowData = this.data();
         
-        // 테스트 상태 업데이트
-        appState.testRunning = false;
+        // 현재 사용자가 수정한 값으로 업데이트
+        const rowNode = this.node();
+        $(rowNode).find('input.cell-editor').each(function() {
+          const colName = $(this).closest('td').index();
+          const headerName = Object.keys(rowData)[colName];
+          rowData[headerName] = $(this).val();
+        });
+        
+        modifiedData.push(rowData);
+      });
+    } else {
+      // 테이블이 없으면 세션 스토리지에서 복원
+      const savedData = sessionStorage.getItem('dbParsedData');
+      if (savedData) {
+        modifiedData = JSON.parse(savedData);
+      }
+    }
+    
+    if (!modifiedData.length) {
+      alert('다운로드할 데이터가 없습니다.');
+      showLoader(false);
+      return;
+    }
+    
+    // 서버에 수정된 데이터 전송하여 엑셀 파일 생성 요청
+    $.ajax({
+      url: '/create_excel_from_data.php',
+      type: 'POST',
+      contentType: 'application/json',
+      data: JSON.stringify({
+        data: modifiedData
+      }),
+      dataType: 'json',
+      timeout: 300000  // 5분 타임아웃
+    })
+    .done(function(response) {
+      showLoader(false);
+      
+      if (response.success && response.downloadUrl) {
+        // 다운로드 링크 생성 및 클릭
+        const downloadLink = document.createElement('a');
+        downloadLink.href = response.downloadUrl;
+        downloadLink.download = response.filename || 'modified_data.xlsx';
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+        
+        console.log('수정된 데이터로 엑셀 파일 다운로드 성공');
+      } else {
+        alert('엑셀 파일 생성 실패: ' + (response.message || '알 수 없는 오류'));
+      }
+    })
+    .fail(function(jqXHR, textStatus, errorThrown) {
+      showLoader(false);
+      console.error('엑셀 생성 요청 실패:', textStatus, errorThrown);
+      alert('엑셀 파일 생성 요청 실패: ' + textStatus);
     });
   }
   
@@ -586,6 +871,36 @@ const appState = {
       alert('테이블 초기화 요청 실패!\n' + textStatus);
     });
   }
+
+  /**
+   *  테이블 초기화 함수 (버튼 클릭 없이)
+   */
+  function initializeTables() {
+    if (!confirm('모든 테이블의 데이터가 삭제됩니다. 계속하시겠습니까?')) {
+      return;
+    }
+    
+    showLoader(true, '테이블 초기화 중...');
+    // API 호출
+    $.ajax({
+      url: '/test_distributed_save.php?action=initialize_tables',
+      type: 'GET',
+      dataType: 'json'
+    })
+    .done(function(response) {
+      showLoader(false);
+      if (response.success) {
+        alert(response.message);
+      } else {
+        alert('테이블 초기화 실패: ' + response.message);
+      }
+    })
+    .fail(function(jqXHR, textStatus, errorThrown) {
+      showLoader(false);
+      console.error('API 요청 실패:', textStatus, errorThrown);
+      alert('테이블 초기화 요청 실패: ' + textStatus);
+    })
+  }
   
   /**
    * 테스트 결과 업데이트
@@ -632,33 +947,11 @@ const appState = {
   }
   
   /**
-   * 모든 테스트 초기화 (resetTests 함수 확장)
+   * 모든 테스트 초기화 (페이지 새로고침 방식)
    */
   function resetTests() {
-    // 파일 입력 초기화
-    $('#excelFile').val('');
-    $('#fileInfo').text('선택된 파일 없음');
-    
-    // 버튼 상태 초기화
-    $('#runTestBtn').prop('disabled', true);
-    $('#resetBtn').prop('disabled', true);
-    
-    // 로딩 인디케이터 숨기기
-    $('#loadingContainer').hide();
-    
-    // 파싱 결과 섹션 정리
-    if (typeof cleanupDataTable === 'function') {
-      cleanupDataTable();
-    } else {
-      $('#parsedDataSection').hide();
-    }
-    
-    // 테스트 결과 초기화
-    resetTestResults();
-    
-    // 상태 초기화
-    appState.selectedFile = null;
-    appState.testRunning = false;
+    // 페이지 새로고침
+    location.reload();
   }
 
   /**
@@ -744,7 +1037,7 @@ const appState = {
             
             // 샘플 데이터 콘솔에 출력 (추가)
             if (response.sampleData && response.sampleData.length > 0) {
-                console.log('===== 복호화된 데이터 샘플 (처음 10개 행) =====');
+                console.log('===== 복호화된 데이터 runExcelDownloadTest (처음 10개 행) =====');
                 console.table(response.sampleData);
                 console.log('=================================================');
             }

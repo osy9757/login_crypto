@@ -1,18 +1,25 @@
 {
-    "name": "myvendor/myproject",
-    "description": "My PHP project with PhpSpreadsheet",
-    "type": "project",
-    "require": {
+  "name": "myvendor/myproject",
+  "description": "My PHP project with PhpSpreadsheet",
+  "type": "project",
+  "require": {
       "php": "^7.4",
       "phpoffice/phpspreadsheet": "^1.26",
-        "box/spout": "^3.3",
-        "vlucas/phpdotenv": "^5.6"
-    },
-    "license": "MIT",
-    "autoload": {
-      "psr-4": {
-        "MyVendor\\MyProject\\": "src/"
+      "box/spout": "^3.3",
+      "vlucas/phpdotenv": "^5.6",
+      "psr/simple-cache": "^1.0",
+      "maennchen/zipstream-php": "^2.1"
+  },
+  "config": {
+      "platform": {
+          "php": "7.4.33"
       }
-    },
-    "minimum-stability": "stable"
-  }
+  },
+  "license": "MIT",
+  "autoload": {
+      "psr-4": {
+          "MyVendor\\MyProject\\": "src/"
+      }
+  },
+  "minimum-stability": "stable"
+}

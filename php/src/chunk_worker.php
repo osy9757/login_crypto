@@ -127,14 +127,14 @@ try {
             $encryptor = new AesGcmEncryptor();
             $encryptedData = $encryptor->encryptData($transformedData, $columnCount);
             
-            // 암호화된 데이터를 원래 키와 매핑
+            // 암호화된 데이터를 "col1", "col2" 형식의 키로 매핑
             $finalData = [];
             $i = 0;
-            foreach ($chunkData as $originalRow) {
-                $keys = array_keys($originalRow);
+            foreach ($encryptedData as $idx => $row) {
                 $encRow = [];
-                foreach ($keys as $idx => $key) {
-                    $encRow[$key] = $encryptedData[$i][$idx] ?? '';
+                for ($j = 0; $j < count($row); $j++) {
+                    $colName = "col" . ($j + 1);
+                    $encRow[$colName] = $row[$j] ?? '';
                 }
                 $finalData[] = $encRow;
                 $i++;

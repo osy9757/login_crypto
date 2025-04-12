@@ -26,7 +26,8 @@ RUN apt-get update && apt-get install -y \
     zip \
     gd \
     xml \
-    ffi
+    ffi \
+    pcntl
 
 WORKDIR /var/www/html
 
