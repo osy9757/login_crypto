@@ -92,7 +92,7 @@
     </div>
     
     <!-- 엑셀 파싱 결과를 표시할 섹션 -->
-    <div class="parsed-data-section" id="parsedDataSection" style="display: none;">
+    <div class="parsed-data-section" id="parsedDataSection">
       <h2>엑셀 파싱 결과</h2>
       <div class="parsed-stats">
         <p>행 수: <span id="rowCount">0</span></p>
@@ -107,67 +107,30 @@
       </div>
     </div>
 
-    <!-- 테스트 결과 섹션 아래에 추가 -->
-    <div class="decrypt-download-section">
-      <h2>암호화 데이터 복호화 및 다운로드</h2>
-      <div class="options-panel">
-        <div class="option-group">
-          <label for="processCountOption">프로세스 수:</label>
-          <select id="processCountOption">
-            <option value="auto" selected>자동 (최적화)</option>
-            <option value="1">단일 프로세스</option>
-            <option value="2">2 프로세스</option>
-            <option value="4">4 프로세스</option>
-            <option value="8">8 프로세스</option>
-          </select>
-        </div>
-        <div class="option-group">
-          <label for="outputFormatOption">출력 형식:</label>
-          <select id="outputFormatOption">
-            <option value="csv" selected>CSV</option>
-            <option value="json">JSON</option>
-          </select>
-        </div>
-        <div class="option-group checkbox">
-          <input type="checkbox" id="useEncryptionOption" checked>
-          <label for="useEncryptionOption">암호화된 데이터 복호화</label>
-        </div>
+     <!-- DB 파싱 결과를 표시할 섹션 -->
+     <div class="parsed-data-section" id="dbParsedDataSection">
+      <div class="section-header">
+        <h2>DB 파싱 결과</h2>
+        <button id="dbDownloadBtn" class="action-button">
+          <i class="fas fa-download"></i> 다운로드
+        </button>
       </div>
-      <div class="decrypt-actions">
-        <button id="decryptDownloadBtn" class="action-button">복호화 및 다운로드</button>
-        <span id="decryptStatus" class="status-indicator"></span>
+      <div class="parsed-stats">
+        <p>행 수: <span id="dbRowCount">0</span></p>
+        <p>열 수: <span id="dbColCount">0</span></p>
       </div>
-      <div id="downloadResult" class="download-result" style="display: none;">
-        <div class="result-info">
-          <p>처리 완료! <span id="downloadRowCount">0</span>개 행 처리됨</p>
-          <p>소요 시간: <span id="downloadTime">0</span>초</p>
-          <p>프로세스 수: <span id="usedProcessCount">0</span></p>
-        </div>
-        <div class="download-link">
-          <a id="downloadLink" href="#" target="_blank" class="download-button">
-            파일 다운로드
-          </a>
-        </div>
+      <!-- DataTables로 변경된 테이블 -->
+      <div class="parsed-table-container">
+        <table id="dbParsedDataTable" class="display" style="width:100%">
+          <thead></thead>
+          <tbody></tbody>
+        </table>
       </div>
     </div>
 
-    <!-- 테이블 초기화 섹션 추가 -->
-    <div class="table-reset-section">
-      <h2>테이블 데이터 초기화</h2>
-      <div class="reset-warning">
-        <p>모든 테이블(excel_full 및 excel_part1~30)의 데이터를 삭제합니다.</p>
-      </div>
-      <div class="reset-actions">
-        <button id="resetTablesBtn" class="action-button danger">모든 테이블 초기화</button>
-        <span id="resetStatus" class="status-indicator"></span>
-      </div>
-      <div id="resetResult" class="reset-result" style="display: none;">
-        <div class="result-info success">
-          <p>테이블 초기화가 완료되었습니다.</p>
-        </div>
-      </div>
-    </div>
   </div>
+
+
 
   <script src="../scripts/performance_test.js"></script>
   <script src="../scripts/excel_parser.js"></script>

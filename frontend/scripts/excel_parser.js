@@ -150,7 +150,7 @@ function parseExcelFile() {
 }
 
 /**
- * 파싱 결과 화면에 표시 (DataTables 사용)
+ * 파싱 결과 화면에 표시 (DataTables 사용) - 수정 가능하게 변경
  */
 function displayParsingResult(data, elapsedTime) {
   if (!data || !data.length) {
@@ -185,12 +185,19 @@ function displayParsingResult(data, elapsedTime) {
     tableData.push(rowData);
   }
   
-  // 컬럼 정의 생성
+  // 컬럼 정의 생성 - 수정 가능한 입력 필드로 렌더링하도록 변경
   const columns = headers.map(header => {
     const headerName = header || '';
     return { 
       title: headerName, 
-      data: headerName
+      data: headerName,
+      // 셀 렌더링을 편집 가능한 입력 필드로 변경
+      render: function(data, type, row, meta) {
+        if (type === 'display') {
+          return '<input type="text" class="cell-editor" value="' + (data || '') + '">';
+        }
+        return data;
+      }
     };
   });
   
@@ -220,6 +227,20 @@ function displayParsingResult(data, elapsedTime) {
         next: '다음',
         previous: '이전'
       }
+    },
+    // 데이터 저장을 위한 추가 옵션
+    drawCallback: function() {
+      // 입력 필드에 변경 이벤트 리스너 추가
+      $('.cell-editor').on('change', function() {
+        const cell = parsedDataTable.cell($(this).closest('td'));
+        const rowData = parsedDataTable.row(cell.index().row).data();
+        const colName = columns[cell.index().column].data;
+        
+        // 데이터 업데이트
+        rowData[colName] = $(this).val();
+        
+        console.log(`셀 데이터 변경: ${colName} = ${$(this).val()}`);
+      });
     }
   });
   

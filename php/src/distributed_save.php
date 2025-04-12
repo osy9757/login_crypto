@@ -210,17 +210,48 @@ try {
     
     // === 암호화 종료 ===
     
-    // 데이터 배열을 JSON 문자열로 변환
-    $jsonData = json_encode($encryptedData);
+    // 1000행 단위로 분할하여 저장 프로시저 여러 번 호출
+    $chunkSize = 1000; // 청크 크기 설정
+    $totalRows = count($encryptedData);
+    $totalChunks = ceil($totalRows / $chunkSize);
+    $totalRowsAffected = 0;
     
-    // 저장 프로시저 호출
-    $stmt = $pdo->prepare("CALL sp_distribute_excel_data(?)");
-    $stmt->execute([$jsonData]);
+    log_msg("총 {$totalRows}행을 {$totalChunks}개 청크로 분할하여 처리 시작");
     
-    // 결과 가져오기
-    $result = $stmt->fetch(PDO::FETCH_ASSOC);
-    $rowsAffected = $result['total_rows_affected'] ?? $rowCount;
-    $inputRowCount = $result['input_row_count'] ?? $rowCount;
+    for ($chunkIndex = 0; $chunkIndex < $totalChunks; $chunkIndex++) {
+        $startRow = $chunkIndex * $chunkSize;
+        $endRow = min($startRow + $chunkSize, $totalRows);
+        $currentChunkSize = $endRow - $startRow;
+        
+        // 현재 청크의 데이터 추출
+        $chunkData = array_slice($encryptedData, $startRow, $currentChunkSize);
+        
+        // 청크 데이터를 JSON 문자열로 변환
+        $chunkJsonData = json_encode($chunkData);
+        
+        // 표현식을 직접 사용하지 않고 문자열 연결 연산자(.)를 사용
+        $chunkNum = $chunkIndex + 1;
+        log_msg("청크 #{$chunkNum}/{$totalChunks} 처리 중 ({$currentChunkSize}행)");
+        
+        // 저장 프로시저 호출
+        $stmt = $pdo->prepare("CALL sp_distribute_excel_data(?)");
+        $stmt->execute([$chunkJsonData]);
+        
+        // 결과 가져오기
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        $chunkRowsAffected = $result['total_rows_affected'] ?? $currentChunkSize;
+        
+        // 청크 결과 누적
+        $totalRowsAffected += $chunkRowsAffected;
+        
+        // 표현식을 직접 사용하지 않고 문자열 연결 연산자(.)를 사용
+        log_msg("청크 #{$chunkNum} 처리 완료: {$chunkRowsAffected}행 영향 받음");
+        
+        // 메모리 정리
+        $stmt->closeCursor();
+        unset($chunkData);
+        unset($chunkJsonData);
+    }
     
     // 소요 시간 계산
     $elapsedSec = microtime(true) - $startTime;
@@ -229,12 +260,14 @@ try {
     ob_clean();
     echo json_encode([
         'success' => true,
-        'message' => "데이터 분산 저장 완료 (테이블 30개, AES-GCM 암호화, 저장 프로시저 사용)",
-        'rowsAffected' => $rowsAffected,
-        'inputRowCount' => $inputRowCount,
+        'message' => "데이터 분산 저장 완료 (테이블 30개, AES-GCM 암호화, 1000행 단위 청크 처리)",
+        'rowsAffected' => $totalRowsAffected,
+        'inputRowCount' => $totalRows,
         'tableCount' => 30,
+        'chunks' => $totalChunks,
+        'chunkSize' => $chunkSize,
         'elapsedSec' => round($elapsedSec, 4),
-        'method' => 'stored_procedure',
+        'method' => 'stored_procedure_chunked',
         'encrypted' => true,
         'encryptMethod' => "AES-GCM (FFI)"
     ]);
