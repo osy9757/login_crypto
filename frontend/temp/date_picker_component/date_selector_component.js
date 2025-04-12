@@ -110,7 +110,9 @@ class DateSelectorComponent extends HTMLElement {
           const parsedRanges = JSON.parse(newValue);
           this.setDisabledDateRanges(parsedRanges.map(range => ({
             startDate: new Date(range.start || range.startDate),
-            endDate: new Date(range.end || range.endDate)
+            endDate: new Date(range.end || range.endDate),
+            vacationId: range.vacationId || 0,
+            label: range.label || ''
           })));
         } else {
           this._disabledDateRanges = [];
@@ -128,7 +130,9 @@ class DateSelectorComponent extends HTMLElement {
     if (Array.isArray(ranges)) {
       this._disabledDateRanges = ranges.map(range => ({
         startDate: new Date(range.startDate),
-        endDate: new Date(range.endDate)
+        endDate: new Date(range.endDate),
+        vacationId: range.vacationId || 0,
+        label: range.label || ''
       }));
       
       this.updateUIForMode();
@@ -144,7 +148,8 @@ class DateSelectorComponent extends HTMLElement {
     checkDate.setHours(0, 0, 0, 0);
     const dateTime = checkDate.getTime();
     
-    return this._disabledDateRanges.some(range => {
+    // 일치하는 비활성화 범위가 있으면 해당 범위 반환 (라벨 표시용)
+    for (const range of this._disabledDateRanges) {
       // 각 범위의 시작일과 종료일도 시간 정보 제거
       const startDate = new Date(range.startDate);
       startDate.setHours(0, 0, 0, 0);
@@ -154,8 +159,12 @@ class DateSelectorComponent extends HTMLElement {
       endDate.setHours(0, 0, 0, 0);
       const endTime = endDate.getTime();
       
-      return dateTime >= startTime && dateTime <= endTime;
-    });
+      if (dateTime >= startTime && dateTime <= endTime) {
+        return range; // 범위 객체 전체 반환
+      }
+    }
+    
+    return false;
   }
 
   // 시작일과 종료일 사이에 선택 불가능한 기간이 있는지 확인
@@ -565,6 +574,58 @@ class DateSelectorComponent extends HTMLElement {
       
       .show-date-view .calendar-grid {
         display: grid;
+      }
+      
+      /* 휴가 라벨 스타일 */
+      .day.has-vacation-label {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        padding: 2px;
+        height: auto;
+        min-height: 30px;
+      }
+      
+      .day.has-vacation-label .day-number {
+        font-size: 14px;
+        display: block;
+      }
+      
+      .day.has-vacation-label .vacation-label {
+        font-size: 12px;
+        font-weight: bold;
+        color: #fff;
+        background-color: #e74c3c;
+        padding: 1px 5px;
+        border-radius: 4px;
+        line-height: 1.2;
+        margin-top: 2px;
+        display: block;
+        text-align: center;
+      }
+      
+      /* 각 휴가별 라벨 색상 */
+      .day.has-vacation-label[data-vacation-id="1"] .vacation-label {
+        background-color: #e74c3c; /* 빨강 - A */
+      }
+      
+      .day.has-vacation-label[data-vacation-id="2"] .vacation-label {
+        background-color: #3498db; /* 파랑 - B */
+      }
+      
+      .day.has-vacation-label[data-vacation-id="3"] .vacation-label {
+        background-color: #2ecc71; /* 초록 - C */
+      }
+      
+      .day.has-vacation-label[data-vacation-id="4"] .vacation-label {
+        background-color: #f39c12; /* 주황 - D */
+      }
+      
+      .day.has-vacation-label[data-vacation-id="5"] .vacation-label {
+        background-color: #9b59b6; /* 보라 - E */
       }
     `;
     
@@ -1384,6 +1445,7 @@ class DateSelectorComponent extends HTMLElement {
       }
       
       let isDisabled = false;
+      let disabledRange = null;
       
       // 선택 가능 범위 제한 적용
       if ((this._minSelectableDate && date < this._minSelectableDate) || 
@@ -1391,9 +1453,12 @@ class DateSelectorComponent extends HTMLElement {
         isDisabled = true;
       }
     
-      // 선택 불가능한 기간에 포함되는지 확인
-      if (!isDisabled && this.isDateInDisabledRanges(date)) {
-        isDisabled = true;
+      // 선택 불가능한 기간에 포함되는지 확인하고 해당 범위 정보 가져오기
+      if (!isDisabled) {
+        disabledRange = this.isDateInDisabledRanges(date);
+        if (disabledRange) {
+          isDisabled = true;
+        }
       }
       
       // 종료 달력에서 추가 제약 조건 적용
@@ -1419,6 +1484,37 @@ class DateSelectorComponent extends HTMLElement {
       
       if (isDisabled) {
         dayCell.classList.add('disabled');
+        
+        // 휴가에 해당하는 날짜인 경우 라벨 추가
+        if (disabledRange && disabledRange.label) {
+          console.log(`날짜 ${day}에 라벨 표시: ${disabledRange.label} (휴가 ID: ${disabledRange.vacationId})`);
+          
+          // 원래 날짜 숫자를 저장
+          const dayNumber = dayCell.textContent;
+          
+          // 기존 내용 비우기
+          dayCell.textContent = '';
+          
+          // 날짜 숫자 요소 추가
+          const dayNumberSpan = document.createElement('span');
+          dayNumberSpan.className = 'day-number';
+          dayNumberSpan.textContent = dayNumber;
+          dayCell.appendChild(dayNumberSpan);
+          
+          // 휴가 라벨 요소 추가
+          const labelSpan = document.createElement('span');
+          labelSpan.className = 'vacation-label';
+          labelSpan.textContent = disabledRange.label;
+          dayCell.appendChild(labelSpan);
+          
+          // 휴가 라벨 스타일 클래스 추가
+          dayCell.classList.add('has-vacation-label');
+          
+          // 휴가 ID를 데이터 속성으로 추가
+          if (disabledRange.vacationId) {
+            dayCell.dataset.vacationId = disabledRange.vacationId;
+          }
+        }
       } else {
         // 날짜 클릭 이벤트 (시작 달력, 종료 달력 모두에 추가)
         dayCell.addEventListener('click', () => {

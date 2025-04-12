@@ -520,6 +520,17 @@
       // 사용기간 범위 내에서만 선택 가능하도록 제한 설정
       const periodRange = dateUtils.getDateRangeFromString(periodDateRangePicker.value);
       if (periodRange) {
+        // 등록된 휴가 정보 확인 및 로그 출력
+        if (window.vacationRegistration && window.vacationRegistration.registeredVacations) {
+          const vacationCount = window.vacationRegistration.registeredVacations.length;
+          if (vacationCount > 0) {
+            // 휴가 개수에 따라 A, B, C... 형태의 문자열 생성
+            const letters = Array.from({length: vacationCount}, (_, i) => 
+              String.fromCharCode(65 + i)).join(',');
+            console.log(letters); // 예: 1개면 "A", 2개면 "A,B", 3개면 "A,B,C" 출력
+          }
+        }
+
         // 총 휴가일수와 현재까지 사용한 누적 일수
         const totalVacationDays = parseInt(vacationDaysInput.value) || 0;
         const totalUsedDays = window.vacationRegistration?.getTotalUsedDays() || 0;
@@ -540,7 +551,26 @@
         // 이미 등록된 휴가 기간을 선택 불가능한 기간으로 설정
         const disabledPeriods = window.vacationRegistration.getDisabledPeriods();
         if (disabledPeriods && disabledPeriods.length > 0) {
+          console.log('웹 컴포넌트에 전달되는 비활성화 기간 전체 데이터:', disabledPeriods);
+          
+          // 각 비활성화 기간의 상세 정보 출력
+          disabledPeriods.forEach((period, index) => {
+            console.log(`비활성화 기간 ${index + 1}:`, {
+              시작일: period.startDate.toLocaleDateString(),
+              종료일: period.endDate.toLocaleDateString(),
+              휴가ID: period.vacationId || '없음',
+              라벨: period.label || '없음'
+            });
+          });
+          
+          // 웹 컴포넌트에 전달
           vacationDateSelector.setDisabledDateRanges(disabledPeriods);
+          
+          // 비활성화된 데이터가 웹 컴포넌트에 실제로 등록되었는지 확인
+          console.log('웹 컴포넌트 내부 비활성화 기간 목록:', vacationDateSelector._disabledDateRanges);
+          console.log('웹 컴포넌트에서 확인 - 기간 사이에 비활성화된 날짜 있는지:', 
+            periodRange.startDate && periodRange.endDate ? 
+            vacationDateSelector.hasDisabledPeriodBetween(periodRange.startDate, periodRange.endDate) : false);
         }
     
         // 시작일 초기화 (범위의 처음 날짜로)

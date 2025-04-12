@@ -39,17 +39,25 @@ if (!window.vacationRegistration.addUsedDays) {
 }
 
 if (!window.vacationRegistration.addDisabledPeriod) {
-  window.vacationRegistration.addDisabledPeriod = function(startDate, endDate) {
+  window.vacationRegistration.addDisabledPeriod = function(startDate, endDate, vacationId) {
     // 배열이 없는 경우를 대비해 한번 더 확인
     if (!Array.isArray(window.vacationRegistration.disabledPeriods)) {
       window.vacationRegistration.disabledPeriods = [];
     }
     
-    // 배열에 추가
+    // 휴가 ID를 기반으로 알파벳 생성 (1 -> A, 2 -> B, ...)
+    const vacationLabel = vacationId ? String.fromCharCode(64 + vacationId) : '';
+    
+    // 배열에 추가 (휴가 ID와 알파벳 라벨 정보 포함)
     window.vacationRegistration.disabledPeriods.push({
       startDate: new Date(startDate),
-      endDate: new Date(endDate)
+      endDate: new Date(endDate),
+      vacationId: vacationId || 0,
+      label: vacationLabel
     });
+    
+    console.log(`비활성화 기간 추가: ${startDate.toLocaleDateString()} ~ ${endDate.toLocaleDateString()} (휴가 ${vacationLabel})`);
+    console.log('현재 비활성화 기간 목록:', window.vacationRegistration.disabledPeriods);
   };
 }
 
@@ -149,6 +157,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // 휴가 정보를 배열에 추가
     window.vacationRegistration.registeredVacations.push(vacationInfo);
+    console.log(`${registrationCounter}번 휴가가 등록되었습니다:`, vacationInfo);
+    
     // 휴가 기간 파싱
     const vacationParts = vacationDateRangePicker.value.split(' ~ ');
     if (vacationParts.length === 2) {
@@ -175,7 +185,7 @@ document.addEventListener('DOMContentLoaded', () => {
           vacationRegistration: window.vacationRegistration,
           hasDisabledPeriods: Array.isArray(window.vacationRegistration?.disabledPeriods)
         });
-        window.vacationRegistration.addDisabledPeriod(startDate, endDate);
+        window.vacationRegistration.addDisabledPeriod(startDate, endDate, registrationCounter);
       }
     }
   
