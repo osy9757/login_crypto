@@ -87,9 +87,12 @@ try {
     // ---------------------------------------------------
     // 5) Excel 파일 생성 (Spout)
     // ---------------------------------------------------
-    $excelFilePath = __DIR__ . '/final_result.xlsx';
+    $downloadDir = '/var/www/html/writable_downloads'; // 새 디렉토리 사용
+    $fileName = 'decrypted_data_' . uniqid() . '.xlsx'; // 고유 파일 이름
+    $filePath = $downloadDir . '/' . $fileName;
+
     $writer = WriterEntityFactory::createXLSXWriter();
-    $writer->openToFile($excelFilePath);
+    $writer->openToFile($filePath);
 
     if (!empty($finalData)) {
         // 헤더 행
@@ -123,13 +126,14 @@ try {
 
     // 다운받을 경로 (프론트엔드에서 /final_result.xlsx 접근 가능하도록 설정)
     // 예: Apache/Nginx 설정에 따라 접근 경로를 맞춰야 함
-    $downloadUrl = 'final_result.xlsx';
+    $downloadUrl = '/downloadable_files/' . $fileName;
 
 } catch (Exception $e) {
     $totalElapsedTime = microtime(true) - $startTime;
     $success = false;
     $message = "오류 발생: " . $e->getMessage() 
              . " (total time: " . round($totalElapsedTime, 2) . " sec)";
+    http_response_code(500);
 }
 
 // ---------------------------------------------------
@@ -148,7 +152,8 @@ echo json_encode([
     // 전체 데이터 또는 제한된 데이터를 resultData로 반환
     'resultData'  => $fetchFullData ? array_slice($finalData, 0, $limit) : array_slice($finalData, 0, 10),
     // 샘플 데이터는 호환성을 위해 유지 (기존 코드)
-    'sampleData'  => array_slice($finalData, 0, 10)
+    'sampleData'  => array_slice($finalData, 0, 10),
+    'file'        => $fileName // 프론트엔드 전달용 파일 이름
 ], JSON_UNESCAPED_UNICODE);
 
 exit; // 스크립트 종료

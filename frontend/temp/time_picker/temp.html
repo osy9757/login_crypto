@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>Time Picker 데모</title>
+
+  <!-- 모듈 스크립트 로드 -->
+  <script type="module" src="time_picker.js"></script>
+  <style>
+    /* time-picker 컴포넌트의 CSS 변수 커스터마이징 */
+    time-picker {
+      --tp-start-bg: #e3f2fd;  /* 시작 시간 배경색 변경 */
+      --tp-start-border: #90caf9;
+    }
+    
+    /* 페이지 레이아웃 스타일 */
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    .demo-section {
+      margin-bottom: 30px;
+    }
+    
+    h2 {
+      color: #333;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 10px;
+    }
+    
+    .controls {
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    
+    .range-controls {
+      background: #f5f5f5;
+      padding: 10px;
+      border-radius: 5px;
+      margin: 10px 0;
+    }
+    
+    .range-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    
+    .range-group label {
+      min-width: 100px;
+    }
+    
+    select {
+      padding: 5px;
+      border-radius: 4px;
+      border: 1px solid #ddd;
+    }
+  </style>
+</head>
+<body>
+  <div class="demo-section">
+    
+    <div class="controls">
+      <!-- 분 단위 선택 드롭다운 -->
+      <label for="minute-step-selector">분 단위 선택:</label>
+      <select id="minute-step-selector">
+        <option value="0">0 분</option>
+        <option value="1">1 분</option>
+        <option value="5">5 분</option>
+        <option value="10">10 분</option>
+        <option value="15">15 분</option>
+        <option value="30" selected>30분</option> <!-- 기본값 30분 -->
+      </select>
+    </div>
+    
+    <!-- 시간 범위 설정 컨트롤 -->
+    <div class="range-controls">
+      <h3>시간 범위 설정</h3>
+      
+      <!-- 시작 시간 범위 설정 -->
+      <div class="range-group">
+        <label>시작 시간 범위:</label>
+        <select id="start-range-start-hour">
+          <!-- 시간 옵션은 스크립트로 채워짐 -->
+        </select>
+        <span>:</span>
+        <select id="start-range-start-minute">
+          <!-- 분 옵션은 스크립트로 채워짐 -->
+        </select>
+        <span>부터</span>
+        <select id="start-range-end-hour">
+          <!-- 시간 옵션은 스크립트로 채워짐 -->
+        </select>
+        <span>:</span>
+        <select id="start-range-end-minute">
+          <!-- 분 옵션은 스크립트로 채워짐 -->
+        </select>
+        <span>까지</span>
+      </div>
+      
+      <!-- 종료 시간 범위 설정 -->
+      <div class="range-group">
+        <label>종료 시간 범위:</label>
+        <select id="end-range-start-day">
+          <option value="0">당일</option>
+          <option value="1">익일</option>
+        </select>
+        <select id="end-range-start-hour">
+          <!-- 시간 옵션은 스크립트로 채워짐 -->
+        </select>
+        <span>:</span>
+        <select id="end-range-start-minute">
+          <!-- 분 옵션은 스크립트로 채워짐 -->
+        </select>
+        <span>부터</span>
+        <select id="end-range-end-day">
+          <option value="0">당일</option>
+          <option value="1" selected>익일</option>
+        </select>
+        <select id="end-range-end-hour">
+          <!-- 시간 옵션은 스크립트로 채워짐 -->
+        </select>
+        <span>:</span>
+        <select id="end-range-end-minute">
+          <!-- 분 옵션은 스크립트로 채워짐 -->
+        </select>
+        <span>까지</span>
+      </div>
+    </div>
+
+    <!-- 시간 출력 박스 -->
+    <div class="time-display-container">
+      <div class="time-display-label">선택된 시간:</div>
+      <div>
+        <span>시작: </span><div class="start-box"></div>
+        <span>종료: </span><div class="end-box"></div>
+      </div>
+    </div>
+
+    <!-- TimePicker 컴포넌트 -->
+    <time-picker
+      output-classes="start-box,end-box"
+      minute-steps="30"
+      start-range='{"start":{"hour":8,"minute":0},"end":{"hour":23,"minute":59}}'
+      end-range='{"start":{"day":0,"hour":8,"minute":0},"end":{"day":1,"hour":15,"minute":0}}'>
+      <button slot="trigger">시작시간 선택</button>
+      <button slot="trigger">종료시간 선택</button>
+    </time-picker>
+  </div>
+
+  <!-- 컴포넌트 API 제어 및 드롭다운 연동 예시 -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const picker = document.querySelector('time-picker');
+      const minuteSelector = document.getElementById('minute-step-selector');
+      
+      // 시작 범위 관련 셀렉터
+      const startRangeStartHour = document.getElementById('start-range-start-hour');
+      const startRangeStartMinute = document.getElementById('start-range-start-minute');
+      const startRangeEndHour = document.getElementById('start-range-end-hour');
+      const startRangeEndMinute = document.getElementById('start-range-end-minute');
+      
+      // 종료 범위 관련 셀렉터
+      const endRangeStartDay = document.getElementById('end-range-start-day');
+      const endRangeStartHour = document.getElementById('end-range-start-hour');
+      const endRangeStartMinute = document.getElementById('end-range-start-minute');
+      const endRangeEndDay = document.getElementById('end-range-end-day');
+      const endRangeEndHour = document.getElementById('end-range-end-hour');
+      const endRangeEndMinute = document.getElementById('end-range-end-minute');
+      
+      // 드롭다운에 시간 옵션 채우기
+      function populateHourOptions(selector) {
+        for (let i = 0; i <= 24; i++) {
+          const option = document.createElement('option');
+          option.value = i;
+          option.textContent = i.toString().padStart(2, '0');
+          selector.appendChild(option);
+        }
+      }
+      
+      function populateMinuteOptions(selector) {
+        for (let i = 0; i < 60; i++) {
+          const option = document.createElement('option');
+          option.value = i;
+          option.textContent = i.toString().padStart(2, '0');
+          selector.appendChild(option);
+        }
+      }
+      
+      // 시간 옵션 채우기
+      populateHourOptions(startRangeStartHour);
+      populateHourOptions(startRangeEndHour);
+      populateHourOptions(endRangeStartHour);
+      populateHourOptions(endRangeEndHour);
+      
+      // 분 옵션 채우기
+      populateMinuteOptions(startRangeStartMinute);
+      populateMinuteOptions(startRangeEndMinute);
+      populateMinuteOptions(endRangeStartMinute);
+      populateMinuteOptions(endRangeEndMinute);
+      
+      // 초기값 설정 (현재 time-picker에 설정된 값과 일치하도록)
+      startRangeStartHour.value = 8;  // 08:00
+      startRangeStartMinute.value = 0;
+      startRangeEndHour.value = 23;   // 23:59
+      startRangeEndMinute.value = 59;
+      
+      endRangeStartDay.value = 0;     // 당일
+      endRangeStartHour.value = 8;    // 08:00
+      endRangeStartMinute.value = 0;
+      endRangeEndDay.value = 1;       // 익일
+      endRangeEndHour.value = 15;     // 15:00
+      endRangeEndMinute.value = 0;
+      
+      // 시간 범위 업데이트 함수
+      function updateTimeRanges() {
+        // 시작 범위 JSON 생성
+        const startRange = {
+          start: {
+            hour: parseInt(startRangeStartHour.value, 10),
+            minute: parseInt(startRangeStartMinute.value, 10)
+          },
+          end: {
+            hour: parseInt(startRangeEndHour.value, 10),
+            minute: parseInt(startRangeEndMinute.value, 10)
+          }
+        };
+        
+        // 종료 범위 JSON 생성
+        const endRange = {
+          start: {
+            day: parseInt(endRangeStartDay.value, 10),
+            hour: parseInt(endRangeStartHour.value, 10),
+            minute: parseInt(endRangeStartMinute.value, 10)
+          },
+          end: {
+            day: parseInt(endRangeEndDay.value, 10),
+            hour: parseInt(endRangeEndHour.value, 10),
+            minute: parseInt(endRangeEndMinute.value, 10)
+          }
+        };
+        
+        // TimePicker 속성 업데이트
+        picker.setAttribute('start-range', JSON.stringify(startRange));
+        picker.setAttribute('end-range', JSON.stringify(endRange));
+      }
+      
+      // 변경 이벤트 리스너 등록
+      const allSelectors = [
+        startRangeStartHour, startRangeStartMinute, 
+        startRangeEndHour, startRangeEndMinute,
+        endRangeStartDay, endRangeStartHour, endRangeStartMinute,
+        endRangeEndDay, endRangeEndHour, endRangeEndMinute
+      ];
+      
+      allSelectors.forEach(selector => {
+        selector.addEventListener('change', updateTimeRanges);
+      });
+      
+      // 드롭다운 변경 시 time-picker의 minute-steps 속성 업데이트
+      minuteSelector.addEventListener('change', (event) => {
+        const selectedStep = event.target.value;
+        picker.setAttribute('minute-steps', selectedStep);
+      });
+    });
+  </script>
+</body>
+</html>

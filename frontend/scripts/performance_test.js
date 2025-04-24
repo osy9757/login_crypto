@@ -566,7 +566,7 @@ const appState = {
       // 시작 시간 기록
       const startTime = performance.now();
     
-      // 옵션 - 더 많은 데이터를 가져오도록 수정
+      // 옵션 가져오기 - limit 제거
       const options = {
         fetchFullData: true,  // 전체 데이터 요청 플래그
         limit: 100000         // 최대 100000행까지 요청 (필요에 따라 조정)
@@ -578,10 +578,10 @@ const appState = {
         type: 'POST',
         contentType: 'application/json',
         data: JSON.stringify(options),
-        dataType: 'json',
+        dataType: 'json', // 다시 JSON으로 변경
         timeout: 600000  // 10분 타임아웃
       })
-      .done(function(response) {
+      .done(function(response) { // 파싱된 response 객체를 받음
         // 로딩 숨기기
         showLoader(false);
     
@@ -589,6 +589,7 @@ const appState = {
         const endTime = performance.now();
         const elapsedTime = ((endTime - startTime) / 1000).toFixed(2);
     
+        // jQuery가 이미 JSON 파싱을 처리했으므로 try-catch 제거
         if (response.success) {
           // 성공: 결과 표시
           $('#status4').text('완료').attr('class', 'status-success');
@@ -598,21 +599,20 @@ const appState = {
           $('#notes4').text(`총 ${response.rowCount}행, ${elapsedTime}초`);
           
           // 2. DB 파싱 결과 영역 표시 및 데이터 렌더링 
-          // sampleData 대신 전체 데이터 또는 많은 데이터 사용
           const displayData = response.resultData || response.sampleData || [];
           console.log(`표시할 데이터 개수: ${displayData.length}행`);
           renderDBParsedData(displayData);
           
-          // 3. 결과 데이터를 세션 스토리지에 저장 (페이지 이동 후에도 유지)
+          // 3. 결과 데이터를 세션 스토리지에 저장
           sessionStorage.setItem('dbParsedData', JSON.stringify(displayData));
           
           // Promise 완료
           resolve();
         } else {
-          // 실패: 오류 메시지
+          // 실패: 오류 메시지 (서버가 success: false 반환)
           $('#status4').text('실패').attr('class', 'status-error');
           $('#time4').text(`${elapsedTime}초`);
-          $('#notes4').text(`오류: ${response.message || '알 수 없는 오류'}`);
+          $('#notes4').text(`오류: ${response.message}`);
           
           reject(new Error(response.message || '테스트 4 실패'));
         }
@@ -1015,50 +1015,43 @@ const appState = {
         type: 'POST',
         contentType: 'application/json',
         data: JSON.stringify(options),
-        dataType: 'json',
-        timeout: 600000  // 10분으로 유지
+        dataType: 'json', // 다시 JSON으로 변경
+        timeout: 600000  // 10분 타임아웃
     })
-    .done(function(response) {
+    .done(function(response) { // 파싱된 response 객체를 받음
         // 로딩 숨기기
         showLoader(false);
-        
-        // 종료 시간 기록 및 경과 시간 계산
+    
+        // 종료 시간 기록
         const endTime = performance.now();
         const elapsedTime = ((endTime - startTime) / 1000).toFixed(2);
-        
+    
+        // jQuery가 이미 JSON 파싱을 처리했으므로 try-catch 제거
         if (response.success) {
-            // 다운로드 URL 생성
-            const downloadUrl = '/downloads/' + response.file;
-            
-            // 성공: 결과 표시
-            $('#status4').text('완료').attr('class', 'status-success');
-            $('#time4').text(`${elapsedTime}초`);
-            $('#notes4').text(`전체 ${response.rowCount}행, 프로세스: ${options.processCount}, URL: ${downloadUrl}`);
-            
-            // 샘플 데이터 콘솔에 출력 (추가)
-            if (response.sampleData && response.sampleData.length > 0) {
-                console.log('===== 복호화된 데이터 runExcelDownloadTest (처음 10개 행) =====');
-                console.table(response.sampleData);
-                console.log('=================================================');
-            }
-            
-            // 결과 저장
-            appState.results.test4 = { 
-                time: elapsedTime, 
-                status: '완료', 
-                notes: `전체 ${response.rowCount}행, 프로세스: ${options.processCount}, 파일: ${response.file}` 
-            };
-            
-            console.log('테스트 5 완료');
-            
-            // 모든 테스트 완료
-            appState.testRunning = false;
+          // 성공: 결과 표시
+          $('#status4').text('완료').attr('class', 'status-success');
+          $('#time4').text(`${elapsedTime}초`);
+          
+          // 1. 비고에 총 행수와 시간 표시
+          $('#notes4').text(`총 ${response.rowCount}행, ${elapsedTime}초`);
+          
+          // 2. DB 파싱 결과 영역 표시 및 데이터 렌더링 
+          const displayData = response.resultData || response.sampleData || [];
+          console.log(`표시할 데이터 개수: ${displayData.length}행`);
+          renderDBParsedData(displayData);
+          
+          // 3. 결과 데이터를 세션 스토리지에 저장
+          sessionStorage.setItem('dbParsedData', JSON.stringify(displayData));
+          
+          // Promise 완료
+          resolve();
         } else {
-            // 실패: 오류 메시지
-            $('#status4').text('실패').attr('class', 'status-error');
-            $('#time4').text(`${elapsedTime}초`);
-            $('#notes4').text(`오류: ${response.message}`);
-            appState.testRunning = false;
+          // 실패: 오류 메시지 (서버가 success: false 반환)
+          $('#status4').text('실패').attr('class', 'status-error');
+          $('#time4').text(`${elapsedTime}초`);
+          $('#notes4').text(`오류: ${response.message}`);
+          
+          reject(new Error(response.message || '테스트 4 실패'));
         }
     })
     .fail(function(jqXHR, textStatus, errorThrown) {

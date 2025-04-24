@@ -48,4 +48,9 @@ RUN mkdir -p /var/www/html/logs /var/www/html/tmp && \
     chmod -R 777 /var/www/html/logs /var/www/html/tmp && \
     chown -R www-data:www-data /var/www/html/logs /var/www/html/tmp
 
+# 파일 생성을 위한 전용 디렉토리 생성 및 권한 설정
+RUN mkdir -p /var/www/html/writable_downloads && \
+    chown www-data:www-data /var/www/html/writable_downloads && \
+    chmod 755 /var/www/html/writable_downloads
+
 RUN chown -R www-data:www-data /var/www/html

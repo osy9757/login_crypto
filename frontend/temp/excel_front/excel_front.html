@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel 업로드 및 다운로드 (DataTables)</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- DataTables Bootstrap 5 CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+
+    <style>
+        /* 추가적인 커스텀 스타일이 필요하면 여기에 작성 */
+        body {
+            padding: 20px;
+        }
+        #excelData {
+            margin-top: 20px;
+            margin-bottom: 20px;
+        }
+    </style>
+
+    <!-- SheetJS 라이브러리 추가 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <!-- jQuery (DataTables 필요) -->
+    <script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+    <!-- Bootstrap 5 Bundle JS ( Popper 포함) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <!-- DataTables Bootstrap 5 JS -->
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+</head>
+<body>
+
+    <h1 class="mb-4">Excel 파일 업로드 및 선택 다운로드 (DataTables)</h1>
+
+    <!-- 1. 엑셀 파일 업로드 버튼 -->
+    <div class="mb-3">
+        <label for="excelFile" class="form-label">엑셀 파일 선택 (.xlsx, .xls)</label>
+        <input class="form-control" type="file" id="excelFile" accept=".xlsx, .xls">
+    </div>
+
+    <!-- 3. 다운로드 버튼 (테이블 위로 이동) -->
+    <div class="mb-3">
+        <button id="downloadBtn" class="btn btn-primary">선택 항목 다운로드</button>
+    </div>
+
+    <!-- 2. 엑셀 데이터 출력 영역 -->
+    <div id="excelData">
+        <table id="dataTable" class="table table-striped table-bordered" style="width:100%">
+            <thead>
+                <tr id="headerRow">
+                    <!-- 헤더 행이 동적으로 추가될 위치 -->
+                </tr>
+            </thead>
+            <tbody id="dataBody">
+                <!-- 데이터 행이 동적으로 추가될 위치 -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 3. 다운로드 버튼 -->
+    <!-- <button id="downloadBtn" class="btn btn-primary">선택 항목 다운로드</button> -->
+
+    <!-- 분리된 JavaScript 파일 로드 -->
+    <script src="excel_download.js"></script>
+    <script src="excel_front.js"></script>
+
+</body>
+</html>
